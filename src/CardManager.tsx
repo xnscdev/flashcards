@@ -1,8 +1,8 @@
 import React from 'react';
 import AddCardForm from './forms/AddCardForm';
 import Card from './Card';
-import {DisplayResponse, CardData, CardMapElement} from './Structures';
-import {auth, db} from './Firebase';
+import {DisplayResponse, CardData, CardMapElement} from './structures';
+import {auth, db} from './firebase';
 import {doc, getDocs, setDoc, deleteDoc, collection, CollectionReference} from 'firebase/firestore';
 
 type CardManagerState = {
@@ -23,10 +23,13 @@ class CardManager extends React.Component<{}, CardManagerState> {
             collection: cards,
             cards: []
         };
-        this.listCards();
         this.addCard = this.addCard.bind(this);
         this.listCards = this.listCards.bind(this);
         this.deleteCard = this.deleteCard.bind(this);
+    }
+
+    componentDidMount() {
+        this.listCards();
     }
 
     listCards() {
@@ -95,7 +98,7 @@ class CardManager extends React.Component<{}, CardManagerState> {
             groups.push(array.splice(0, 3));
         }
         const displayCards = groups.map(r => (
-            <div className="row mb-3">
+            <div className="row mb-sm-3" key={r[0].id}>
                 <div className="col-sm">
                     <Card element={r[0]} delete={this.deleteCard}/>
                 </div>
@@ -109,6 +112,7 @@ class CardManager extends React.Component<{}, CardManagerState> {
         ));
         return (
             <>
+                <h2>Add card</h2>
                 <AddCardForm onSubmit={this.addCard}/>
                 <h2 className="mt-5">Cards</h2>
                 {this.state.error && <p className={this.state.errorClass}>{this.state.error}</p>}

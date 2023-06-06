@@ -4,8 +4,8 @@ import 'bootstrap/dist/js/bootstrap.bundle.min';
 import './App.css';
 import Navbar from './Navbar';
 import ContentPanel from './ContentPanel';
-import {PageState} from './Structures';
-import {auth} from './Firebase';
+import {PageState} from './structures';
+import {auth} from './firebase';
 import {createUserWithEmailAndPassword, signInWithEmailAndPassword, User} from 'firebase/auth';
 
 type AppState = {

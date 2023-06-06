@@ -1,7 +1,7 @@
 import React from 'react';
 import SignInForm from './forms/SignInForm';
 import RegisterForm from './forms/RegisterForm';
-import {PageState} from './Structures';
+import {PageState} from './structures';
 import CardManager from './CardManager';
 
 type ContentProps = {
@@ -15,9 +15,9 @@ type ContentProps = {
 
 const ContentPanel: React.FC<ContentProps> = (props: ContentProps) => {
     if (props.page === PageState.SignIn)
-        return <SignInForm onSubmit={props.signIn} error={props.signInError}/>;
+        return <SignInForm onSubmit={props.signIn} error={props.signInError!}/>;
     else if (props.page === PageState.Register)
-        return <RegisterForm onSubmit={props.register} error={props.registerError}/>;
+        return <RegisterForm onSubmit={props.register} error={props.registerError!}/>;
     else if (!props.signedIn)
         return <p>Please sign in or register using the links above.</p>;
     else
