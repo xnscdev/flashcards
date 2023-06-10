@@ -6,13 +6,24 @@ export enum PageState {
 
 export type DisplayResponse = {
     success: boolean,
-    message: string,
-    textClass: string
+    message: string
+};
+
+export type DeckData = {
+    name: string,
+    session: number,
+    sessionCards: string[]
+};
+
+export type DeckMapElement = {
+    id: string,
+    deck: DeckData
 };
 
 export type CardData = {
     front: string,
-    back: string
+    back: string,
+    box: number
 };
 
 export type CardMapElement = {

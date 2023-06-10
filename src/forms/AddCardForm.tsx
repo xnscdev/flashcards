@@ -39,7 +39,7 @@ const AddCardForm: React.FC<AddCardFormProps> = (props: AddCardFormProps) => {
 
                     props.onSubmit(front, back).then(response => {
                         setMessage(response.message);
-                        setTextClass(response.textClass);
+                        setTextClass(response.success ? 'text-success' : 'text-danger');
 
                         if (response.success) {
                             setFront('');
