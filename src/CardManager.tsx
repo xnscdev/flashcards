@@ -2,9 +2,11 @@ import React from 'react';
 import AddCardForm from './forms/AddCardForm';
 import SelectDeckForm from './forms/SelectDeckForm';
 import Card from './Card';
+import ReviewCard from './ReviewCard';
 import {DisplayResponse, DeckData, DeckMapElement, CardData, CardMapElement} from './structures';
 import {auth, db} from './firebase';
-import {doc, getDocs, setDoc, deleteDoc, collection, CollectionReference} from 'firebase/firestore';
+import {doc, collection, getDocs, setDoc, deleteDoc, updateDoc, CollectionReference} from 'firebase/firestore';
+import {shuffleArray} from './util';
 
 type CardManagerState = {
     uid: string,
@@ -13,6 +15,7 @@ type CardManagerState = {
     decks: DeckMapElement[],
     deck?: DeckMapElement,
     cards: CardMapElement[],
+    reviewCards?: CardMapElement[],
     deckError: boolean
     cardError?: string
 };
@@ -35,6 +38,8 @@ class CardManager extends React.Component<{}, CardManagerState> {
         this.addCard = this.addCard.bind(this);
         this.listCards = this.listCards.bind(this);
         this.deleteCard = this.deleteCard.bind(this);
+        this.review = this.review.bind(this);
+        this.reviewNext = this.reviewNext.bind(this);
     }
 
     componentDidMount() {
@@ -54,20 +59,6 @@ class CardManager extends React.Component<{}, CardManagerState> {
         })
     }
 
-    listCards() {
-        this.getCards().then(cards => {
-            this.setState({
-                cards,
-                cardError: undefined
-            });
-        }).catch(err => {
-            this.setState({
-                cards: [],
-                cardError: 'Failed to get cards: ' + err
-            });
-        });
-    }
-
     getDecks(): Promise<DeckMapElement[]> {
         return getDocs(this.state.decksCollection).then(query => {
             let list: DeckMapElement[] = [];
@@ -75,22 +66,6 @@ class CardManager extends React.Component<{}, CardManagerState> {
                 list.push({
                     id: d.id,
                     deck: d.data()
-                });
-            });
-            return list;
-        });
-    }
-
-    getCards(): Promise<CardMapElement[]> {
-        if (!this.state.cardsCollection)
-            return Promise.reject('No deck selected');
-
-        return getDocs(this.state.cardsCollection).then(query => {
-            let list: CardMapElement[] = [];
-            query.forEach(d => {
-                list.push({
-                    id: d.id,
-                    card: d.data()
                 });
             });
             return list;
@@ -120,7 +95,6 @@ class CardManager extends React.Component<{}, CardManagerState> {
         const d = doc(this.state.decksCollection);
         const deck: DeckData = {
             name,
-            session: 0,
             sessionCards: []
         };
         return setDoc(d, deck).then(() => {
@@ -171,6 +145,42 @@ class CardManager extends React.Component<{}, CardManagerState> {
         ));
     }
 
+    updateDeck(): Promise<void> {
+        if (!this.state.deck)
+            return Promise.reject('No deck selected');
+        return updateDoc(doc(this.state.decksCollection, this.state.deck.id), this.state.deck.deck);
+    }
+
+    listCards() {
+        this.getCards().then(cards => {
+            this.setState({
+                cards,
+                cardError: undefined
+            });
+        }).catch(err => {
+            this.setState({
+                cards: [],
+                cardError: 'Failed to get cards: ' + err
+            });
+        });
+    }
+
+    getCards(): Promise<CardMapElement[]> {
+        if (!this.state.cardsCollection)
+            return Promise.reject('No deck selected');
+
+        return getDocs(this.state.cardsCollection).then(query => {
+            let list: CardMapElement[] = [];
+            query.forEach(d => {
+                list.push({
+                    id: d.id,
+                    card: d.data()
+                });
+            });
+            return list;
+        });
+    }
+
     addCard(front: string, back: string): Promise<DisplayResponse> {
         if (!this.state.cardsCollection)
             return Promise.reject('No deck selected');
@@ -205,9 +215,82 @@ class CardManager extends React.Component<{}, CardManagerState> {
         })
     }
 
+    review() {
+        let cards: CardMapElement[];
+        try {
+            cards = this.getCardsForReview();
+        }
+        catch (err) {
+            this.setState({
+                cardError: 'Failed to start review session: ' + err
+            });
+            return;
+        }
+        this.setState({
+            reviewCards: cards
+        });
+    }
+
+    reviewNext(success: boolean): Promise<void> {
+        if (!this.state.reviewCards || !this.state.cardsCollection)
+            return Promise.reject('No deck selected or not in review mode');
+
+        const e = this.state.reviewCards[0];
+        const d = doc(this.state.cardsCollection, e.id);
+        if (success) {
+            if (e.card.box < 4)
+                e.card.box++;
+        }
+        else {
+            e.card.box = 0;
+        }
+
+        const remainingCards = this.state.reviewCards.slice(1);
+        return new Promise<void>(resolve => {
+            this.setState({
+                deck: {
+                    ...this.state.deck!,
+                    deck: {
+                        ...this.state.deck!.deck,
+                        sessionCards: remainingCards.map(e => e.id)
+                    }
+                }
+            }, () => {
+                this.updateDeck().then(() => updateDoc(d, e.card)).then(() => {
+                    this.setState({
+                        reviewCards: remainingCards.length === 0 ? undefined : remainingCards
+                    });
+                    resolve();
+                }).catch(console.error);
+            });
+        });
+    }
+
+    getCardsForReview(): CardMapElement[] {
+        if (!this.state.deck)
+            throw new Error('No deck selected');
+
+        if (this.state.deck.deck.sessionCards.length > 0) {
+            return this.state.deck.deck.sessionCards.map(id => {
+                const card = this.state.cards.find(card => card.id === id);
+                if (!card)
+                    throw new Error('No card found');
+                return card;
+            });
+        }
+
+        let cards = this.state.cards.slice();
+        shuffleArray(cards);
+        cards.sort((a, b) => a.card.box - b.card.box);
+        cards.splice(10, Infinity);
+        if (cards.length === 0)
+            throw new Error('No cards to review');
+        return cards;
+    }
+
     render() {
         let cards = this.state.cards.map(card => (
-            <div className="col-sm-4 mt-4" key={card.id}>
+            <div className="col-md-4 mt-4" key={card.id}>
                 <Card element={card} delete={this.deleteCard}/>
             </div>
         ));
@@ -217,14 +300,21 @@ class CardManager extends React.Component<{}, CardManagerState> {
                 {this.state.deckError && <p className="text-danger">Error loading decks</p>}
                 <SelectDeckForm decks={this.state.decks} selectDeck={this.selectDeck} createDeck={this.createDeck}
                                 deleteDeck={this.deleteDeck}/>
-                {this.state.deck &&
+                {this.state.reviewCards ?
+                    <>
+                        <h2 className="mt-4">Review cards</h2>
+                        <h4>{this.state.reviewCards.length} card{this.state.reviewCards.length !== 1 && 's'} remaining</h4>
+                        <ReviewCard element={this.state.reviewCards[0]} doNext={this.reviewNext}/>
+                    </>
+                    : this.state.deck &&
                     <>
                         <h2 className="mt-4">Add card</h2>
                         <AddCardForm onSubmit={this.addCard}/>
                         <h2 className="mt-4">Cards</h2>
+                        <button type="button" className="btn btn-primary" onClick={this.review}>Review</button>
                         {this.state.cardError && <p className="text-danger">{this.state.cardError}</p>}
                         {this.state.cards.length === 0 ? <p>No cards yet. Add a card above to get started.</p> :
-                            <div className="row">{cards}</div>}
+                            <div className="row mb-5">{cards}</div>}
                     </>
                 }
             </>

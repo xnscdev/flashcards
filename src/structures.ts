@@ -11,7 +11,6 @@ export type DisplayResponse = {
 
 export type DeckData = {
     name: string,
-    session: number,
     sessionCards: string[]
 };
 

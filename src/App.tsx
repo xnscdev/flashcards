@@ -31,13 +31,13 @@ class App extends React.Component<{}, AppState> {
     }
 
     showSignIn() {
-        this.setState<'page'>({
+        this.setState({
             page: PageState.SignIn
         });
     }
 
     showRegister() {
-        this.setState<'page'>({
+        this.setState({
             page: PageState.Register
         });
     }
@@ -61,7 +61,7 @@ class App extends React.Component<{}, AppState> {
                 default:
                     msg = "Unknown error";
             }
-            this.setState<'signInError'>({
+            this.setState({
                 signInError: msg
             })
         });
@@ -69,7 +69,7 @@ class App extends React.Component<{}, AppState> {
 
     register(email: string, password: string, confirmPassword: string) {
         if (password !== confirmPassword) {
-            this.setState<'registerError'>({
+            this.setState({
                 registerError: "Passwords do not match"
             });
             return;
@@ -90,7 +90,7 @@ class App extends React.Component<{}, AppState> {
                 default:
                     msg = "Unknown error";
             }
-            this.setState<'registerError'>({
+            this.setState({
                 registerError: msg
             })
         });
@@ -103,7 +103,7 @@ class App extends React.Component<{}, AppState> {
 
     authStateChanged(user: User | null) {
         if (user) {
-            this.setState<'signedIn'>({
+            this.setState({
                 signedIn: true,
                 signInError: undefined,
                 registerError: undefined,
@@ -111,7 +111,7 @@ class App extends React.Component<{}, AppState> {
             });
         }
         else {
-            this.setState<'signedIn'>({
+            this.setState({
                 signedIn: false,
                 page: PageState.Main
             });
