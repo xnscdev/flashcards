@@ -3,7 +3,8 @@ import {CardMapElement} from './structures';
 
 type ReviewCardProps = {
     element: CardMapElement,
-    doNext: (success: boolean) => Promise<void>
+    doNext: (success: boolean) => Promise<void>,
+    cancel: () => void
 }
 
 const ReviewCard: React.FC<ReviewCardProps> = (props) => {
@@ -43,6 +44,7 @@ const ReviewCard: React.FC<ReviewCardProps> = (props) => {
                     </div>
                 </>
             }
+            <button className="btn btn-danger mt-3" onClick={props.cancel}>Quit review</button>
         </>
     );
 };

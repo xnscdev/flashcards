@@ -4,6 +4,7 @@ import SelectDeckForm from './forms/SelectDeckForm';
 import Card from './Card';
 import ReviewCard from './ReviewCard';
 import {DisplayResponse, DeckData, DeckMapElement, CardData, CardMapElement} from './structures';
+import {maxBox} from './box';
 import {auth, db} from './firebase';
 import {doc, collection, getDocs, setDoc, deleteDoc, updateDoc, CollectionReference} from 'firebase/firestore';
 import {shuffleArray} from './util';
@@ -40,6 +41,7 @@ class CardManager extends React.Component<{}, CardManagerState> {
         this.deleteCard = this.deleteCard.bind(this);
         this.review = this.review.bind(this);
         this.reviewNext = this.reviewNext.bind(this);
+        this.cancelReview = this.cancelReview.bind(this);
     }
 
     componentDidMount() {
@@ -238,7 +240,7 @@ class CardManager extends React.Component<{}, CardManagerState> {
         const e = this.state.reviewCards[0];
         const d = doc(this.state.cardsCollection, e.id);
         if (success) {
-            if (e.card.box < 4)
+            if (e.card.box < maxBox)
                 e.card.box++;
         }
         else {
@@ -258,11 +260,17 @@ class CardManager extends React.Component<{}, CardManagerState> {
             }, () => {
                 this.updateDeck().then(() => updateDoc(d, e.card)).then(() => {
                     this.setState({
-                        reviewCards: remainingCards.length === 0 ? undefined : remainingCards
+                        reviewCards: remainingCards
                     });
                     resolve();
                 }).catch(console.error);
             });
+        });
+    }
+
+    cancelReview() {
+        this.setState({
+            reviewCards: undefined
         });
     }
 
@@ -303,8 +311,18 @@ class CardManager extends React.Component<{}, CardManagerState> {
                 {this.state.reviewCards ?
                     <>
                         <h2 className="mt-4">Review cards</h2>
-                        <h4>{this.state.reviewCards.length} card{this.state.reviewCards.length !== 1 && 's'} remaining</h4>
-                        <ReviewCard element={this.state.reviewCards[0]} doNext={this.reviewNext}/>
+                        {this.state.reviewCards.length ?
+                            <>
+                                <h4>{this.state.reviewCards.length} card{this.state.reviewCards.length !== 1 && 's'} remaining</h4>
+                                <ReviewCard element={this.state.reviewCards[0]} doNext={this.reviewNext}
+                                            cancel={this.cancelReview}/>
+                            </>
+                            :
+                            <>
+                                <h4>Review complete</h4>
+                                <button className="btn btn-primary" onClick={this.cancelReview}>Exit review</button>
+                            </>
+                        }
                     </>
                     : this.state.deck &&
                     <>
