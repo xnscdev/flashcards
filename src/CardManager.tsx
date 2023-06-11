@@ -36,6 +36,7 @@ class CardManager extends React.Component<{}, CardManagerState> {
         this.selectDeck = this.selectDeck.bind(this);
         this.createDeck = this.createDeck.bind(this);
         this.deleteDeck = this.deleteDeck.bind(this);
+        this.updateDeck = this.updateDeck.bind(this);
         this.addCard = this.addCard.bind(this);
         this.listCards = this.listCards.bind(this);
         this.deleteCard = this.deleteCard.bind(this);
@@ -279,12 +280,19 @@ class CardManager extends React.Component<{}, CardManagerState> {
             throw new Error('No deck selected');
 
         if (this.state.deck.deck.sessionCards.length > 0) {
-            return this.state.deck.deck.sessionCards.map(id => {
-                const card = this.state.cards.find(card => card.id === id);
-                if (!card)
-                    throw new Error('No card found');
-                return card;
-            });
+            const cards = this.state.deck.deck.sessionCards.map(id => this.state.cards.find(card => card.id === id)).filter(card => card) as CardMapElement[];
+            if (cards.length !== this.state.deck.deck.sessionCards.length) {
+                this.setState({
+                    deck: {
+                        ...this.state.deck!,
+                        deck: {
+                            ...this.state.deck!.deck,
+                            sessionCards: cards.map(e => e.id)
+                        }
+                    }
+                }, this.updateDeck);
+            }
+            return cards;
         }
 
         let cards = this.state.cards.slice();

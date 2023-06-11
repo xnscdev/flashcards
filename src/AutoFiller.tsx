@@ -1,7 +1,7 @@
 import React, {useState, useId} from 'react';
 import axios, {AxiosRequestConfig} from 'axios';
 import {load as loadCheerio} from 'cheerio';
-import {htmlToText} from 'html-to-text';
+import {htmlToText, HtmlToTextOptions} from 'html-to-text';
 
 const partsOfSpeech = [
     'noun',
@@ -13,6 +13,18 @@ const partsOfSpeech = [
     'conjunction',
     'particle'
 ]
+
+const htmlToTextOptions: HtmlToTextOptions = {
+    selectors: [
+        {
+            selector: 'a',
+            options: {
+                ignoreHref: true
+            }
+        }
+    ],
+    wordwrap: false
+};
 
 type AutoFillerProps = {
     word: string,
@@ -80,6 +92,16 @@ const AutoFiller: React.FC<AutoFillerProps> = (props: AutoFillerProps) => {
                     result.push(element.text());
                 }
             }
+            else if (element.is('p')) {
+                const headword = element.find('.headword');
+                if (headword.length > 0 && headword.next().length > 0) {
+                    if (headword.next()[0].name === 'a')
+                        headword.next().remove(); // transliteration guide link, this is useless
+                    headword.remove();
+                    let str = '- ' + htmlToText(element.html() as string, htmlToTextOptions);
+                    result.push(str);
+                }
+            }
             else if (element.is('ol')) {
                 for (const i of element.find('li')) {
                     const item = $(i);
@@ -90,16 +112,7 @@ const AutoFiller: React.FC<AutoFillerProps> = (props: AutoFillerProps) => {
                             const line = $(d);
                             line.replaceWith(`<div>${line.html()}</div>`);
                         }
-                        const text = htmlToText(extra.html() as string, {
-                            selectors: [
-                                {
-                                    selector: 'a',
-                                    options: {
-                                        ignoreHref: true
-                                    }
-                                }
-                            ]
-                        });
+                        const text = htmlToText(extra.html() as string, htmlToTextOptions);
                         for (const line of text.split('\n')) {
                             save.push('          ' + line);
                         }
